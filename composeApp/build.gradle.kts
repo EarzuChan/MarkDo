@@ -165,6 +165,12 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = appId
             packageVersion = verName
+
+            buildTypes.release{
+                proguard {
+                    configurationFiles.from(project.file("proguard-rules.pro"))
+                }
+            }
         }
     }
 }
