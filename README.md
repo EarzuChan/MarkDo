@@ -1,4 +1,5 @@
-# Noodle
+# 麻豆 - MarkDo
+MARK what you get, DO what you need
 第三方Moodle客户端，使用Kotlin Multiplatform编写，支持Desktop和Android平台
 ## 使用了：
 - [FetchMoodle](https://github.com/EarzuChan/FetchMoodle)：我自己写的Moodle站点操作库

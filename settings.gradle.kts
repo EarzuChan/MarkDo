@@ -1,4 +1,4 @@
-rootProject.name = "Noodle"
+rootProject.name = "MarkDo"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {

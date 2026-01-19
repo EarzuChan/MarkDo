@@ -11,7 +11,7 @@ val verCode = SimpleDateFormat("yyyyMMdd").format(Date()).toInt()
 // 当实现计划时记得撞♂版本号
 val verName = "1.0.1"
 // 包名
-val appId = "me.earzuchan.noodle"
+val appId = "me.earzuchan.markdo"
 
 val myGeneratedCodeDir = "generated/source/buildConstants"
 
@@ -157,19 +157,27 @@ dependencies {
     debugImplementation(compose.uiTooling)
 }
 
-compose.desktop {
-    application {
-        mainClass = "$appId.InitAppKt"
+compose {
+    resources {
+        publicResClass = false
+        packageOfResClass = "$appId.resources"
+        generateResClass = auto
+    }
 
-        nativeDistributions {
-            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = appId
-            packageVersion = verName
+    desktop {
+        application {
+            mainClass = "$appId.InitAppKt"
 
-            buildTypes.release{
-                proguard {
-                    configurationFiles.from(project.file("proguard-rules.pro"))
-                    // FIXME：666安装了启动不了JVM
+            nativeDistributions {
+                targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
+                packageName = appId
+                packageVersion = verName
+
+                buildTypes.release {
+                    proguard {
+                        // FIXME：666安装了启动不了JVM
+                        configurationFiles.from(project.file("proguard-rules-desktop.pro"))
+                    }
                 }
             }
         }
