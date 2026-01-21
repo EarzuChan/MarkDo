@@ -35,6 +35,8 @@ import me.earzuchan.markdo.resources.ic_file_24px
 import me.earzuchan.markdo.resources.ic_forum_24px
 import me.earzuchan.markdo.resources.ic_quiz_24px
 import me.earzuchan.markdo.resources.ic_task_24px
+import me.earzuchan.markdo.ui.models.SectionModuleState
+import me.earzuchan.markdo.utils.ComposeUtils.only
 import me.earzuchan.markdo.utils.ResUtils.vector
 import org.jetbrains.compose.resources.DrawableResource
 
@@ -77,14 +79,20 @@ fun CourseDetailPage(duty: CourseDetailDuty) {
 
 @Composable
 fun SectionView(section: SectionLike, duty: CourseDetailDuty): Unit = Column(Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.large).padding(vertical = 16.dp)) {
-    SectionHeader(section)
+    val modCount = section.modules.size
 
-    section.modules.forEach { module -> ModuleItemDispatcher(module, duty) }
+    SectionHeader(section, modCount != 0)
+
+    section.modules.forEachIndexed { i, module ->
+        ModuleItemDispatcher(module, duty)
+    }
 }
 
 @Composable
 fun ModuleItemDispatcher(module: CourseModule, duty: CourseDetailDuty) = when (module) {
-    is CourseModule.SubSection -> SectionView(module, duty)
+    is CourseModule.SubSection -> {
+       SectionView(module, duty)
+    }
 
     is CourseModule.Label -> LabelView(module)
 
@@ -100,8 +108,8 @@ fun ModuleItemDispatcher(module: CourseModule, duty: CourseDetailDuty) = when (m
 }
 
 @Composable
-fun SectionHeader(section: SectionLike) = Column(Modifier.fillMaxWidth(), Arrangement.spacedBy(16.dp)) {
-    val modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 16.dp)
+fun SectionHeader(section: SectionLike, needBottomPadding: Boolean) = Column(Modifier.fillMaxWidth(), Arrangement.spacedBy(16.dp)) {
+    val modifier = Modifier.padding(horizontal = 16.dp).only(needBottomPadding) { padding(bottom = 16.dp) }
 
     Text(section.name, modifier, MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleLarge)
 
