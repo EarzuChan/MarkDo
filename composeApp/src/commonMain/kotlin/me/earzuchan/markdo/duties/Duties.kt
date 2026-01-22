@@ -19,6 +19,7 @@ import lib.fetchmoodle.MoodleFetcher
 import lib.fetchmoodle.MoodleResult
 import me.earzuchan.markdo.data.preferences.AppPreferences
 import me.earzuchan.markdo.data.repositories.AppPreferenceRepository
+import me.earzuchan.markdo.utils.MarkDoLog
 import me.earzuchan.markdo.utils.MiscUtils.ioDispatcherLaunch
 import me.earzuchan.markdo.utils.MiscUtils.mainDispatcherLaunch
 import org.koin.core.component.KoinComponent
@@ -57,10 +58,7 @@ class AppDuty(ctx: ComponentContext) : ComponentContext by ctx, KoinComponent {
         moodleFetcher.clearSessionData()
 
         ioDispatcherLaunch {
-            appPrefRepo.setBaseSite(AppPreferences.DEFAULT_BASE_SITE)
-            appPrefRepo.setUsername("")
-            appPrefRepo.setPassword("")
-
+            appPrefRepo.resetLoginData()
             mainDispatcherLaunch { navigation.replaceAll(AppNavis.Login) }
         }
     }
@@ -89,6 +87,10 @@ class MainDuty(ctx: ComponentContext, val logout: () -> Unit) : ComponentContext
 }
 
 class LoginDuty(ctx: ComponentContext, private val onLoginSuccess: () -> Unit) : ComponentContext by ctx, KoinComponent {
+    private companion object {
+        const val TAG = "LoginDuty"
+    }
+
     private val moodleFetcher: MoodleFetcher by inject()
     private val appPrefRepo: AppPreferenceRepository by inject()
 
@@ -97,43 +99,47 @@ class LoginDuty(ctx: ComponentContext, private val onLoginSuccess: () -> Unit) :
     val username = MutableStateFlow("")
     val password = MutableStateFlow("")
     val errorMessage = MutableStateFlow<String?>(null)
-    val isLoading = MutableStateFlow(false)
+    val disableButton = MutableStateFlow(false)
 
     init {
         ioDispatcherLaunch {
             baseSite.value = appPrefRepo.baseSite.first()
             username.value = appPrefRepo.username.first()
             password.value = appPrefRepo.password.first()
+
+            MarkDoLog.i(TAG, "带派吗老弟：${username.value}，${password.value}")
         }
     }
 
     fun onLoginClick() {
-        val baseSite = baseSite.value
+        val site = baseSite.value
         val user = username.value
         val pwd = password.value
 
-        if (baseSite.isBlank() || user.isBlank() || pwd.isBlank()) {
+        if (site.isBlank() || user.isBlank() || pwd.isBlank()) {
             errorMessage.value = "站点、用户名、密码不能为空"
             return
         }
 
         ioDispatcherLaunch {
-            isLoading.value = true
+            disableButton.value = true
             errorMessage.value = null
 
-            when (val result = moodleFetcher.login("https://$baseSite", user, pwd)) {
+            when (val result = moodleFetcher.login("https://$site", user, pwd)) {
                 is MoodleResult.Success -> {
-                    appPrefRepo.setBaseSite(baseSite)
+                    appPrefRepo.setBaseSite(site)
                     appPrefRepo.setUsername(user)
                     appPrefRepo.setPassword(pwd)
 
                     mainDispatcherLaunch { onLoginSuccess() }
                 }
 
-                is MoodleResult.Failure -> errorMessage.value = "登录失败：" + (result.exception.message ?: "未知错误")
-            }
+                is MoodleResult.Failure -> {
+                    errorMessage.value = "登录失败：" + (result.exception.message ?: "未知错误")
 
-            isLoading.value = false
+                    disableButton.value = false
+                }
+            }
         }
     }
 }

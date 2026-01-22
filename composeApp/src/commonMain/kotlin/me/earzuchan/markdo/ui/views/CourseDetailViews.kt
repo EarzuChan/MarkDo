@@ -2,18 +2,7 @@ package me.earzuchan.markdo.ui.views
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -27,16 +16,7 @@ import lib.fetchmoodle.CourseModule
 import lib.fetchmoodle.CourseModuleAvailability
 import lib.fetchmoodle.SectionLike
 import me.earzuchan.markdo.duties.CourseDetailDuty
-import me.earzuchan.markdo.resources.Res
-import me.earzuchan.markdo.resources.ic_arrow_back_24px
-import me.earzuchan.markdo.resources.ic_block_24px
-import me.earzuchan.markdo.resources.ic_extension_24px
-import me.earzuchan.markdo.resources.ic_file_24px
-import me.earzuchan.markdo.resources.ic_forum_24px
-import me.earzuchan.markdo.resources.ic_quiz_24px
-import me.earzuchan.markdo.resources.ic_task_24px
-import me.earzuchan.markdo.ui.models.SectionModuleState
-import me.earzuchan.markdo.utils.ComposeUtils.only
+import me.earzuchan.markdo.resources.*
 import me.earzuchan.markdo.utils.ResUtils.vector
 import org.jetbrains.compose.resources.DrawableResource
 
@@ -78,42 +58,65 @@ fun CourseDetailPage(duty: CourseDetailDuty) {
 }
 
 @Composable
-fun SectionView(section: SectionLike, duty: CourseDetailDuty): Unit = Column(Modifier.fillMaxWidth().border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.large).padding(vertical = 16.dp)) {
-    val modCount = section.modules.size
+fun SectionView(section: SectionLike, duty: CourseDetailDuty): Unit = Column(
+    Modifier
+        .fillMaxWidth()
+        .border(1.dp, MaterialTheme.colorScheme.outline, MaterialTheme.shapes.large)
+        .padding(vertical = 16.dp)
+) {
+    // 1. 头部永远显示
+    SectionHeader(section)
 
-    SectionHeader(section, modCount != 0)
+    // 2. 遍历模块，将“上一个模块”的信息传给分发器
+    section.modules.forEachIndexed { index, module ->
+        val prevModule = if (index > 0) section.modules[index - 1] else null
 
-    section.modules.forEachIndexed { i, module ->
-        ModuleItemDispatcher(module, duty)
+        ModuleItemDispatcher(module, prevModule, index == 0, duty)
     }
 }
 
 @Composable
-fun ModuleItemDispatcher(module: CourseModule, duty: CourseDetailDuty) = when (module) {
-    is CourseModule.SubSection -> {
-       SectionView(module, duty)
+fun ModuleItemDispatcher(module: CourseModule, prevModule: CourseModule?, isFirst: Boolean, duty: CourseDetailDuty) {
+    // 判断当前模块和上一个模块是否都是 ListItem 类型
+    val currentIsFull = isFullWidth(module)
+    val prevIsFull = prevModule?.let { isFullWidth(it) } ?: false
+
+    // 间距逻辑：
+    // 1. 如果是第一个模块，且 Header 存在，必须有 16dp Gap
+    // 2. 如果当前或前一个是 Inset 类型，必须有 16dp Gap
+    // 3. 只有连续两个 FullWidth 之间是 0 Gap
+    val needTopGap = isFirst || !currentIsFull || !prevIsFull
+
+    Column(Modifier.fillMaxWidth()) {
+        if (needTopGap) Spacer(Modifier.height(16.dp))
+
+        // 统一处理左右内边距：如果是 FullWidth 类型则为 0，否则为 16.dp
+        val horizontalPadding = if (currentIsFull) 0.dp else 16.dp
+
+        Box(Modifier.fillMaxWidth().padding(horizontal = horizontalPadding)) {
+            when (module) {
+                is CourseModule.SubSection -> SectionView(module, duty) // 递归
+                is CourseModule.Label -> LabelView(module)
+                is CourseModule.Resource -> ResourceView(module) { /*...*/ }
+                is CourseModule.Assignment -> AssignmentView(module) { /*...*/ }
+                is CourseModule.Forum -> SimpleModuleView(module, Res.drawable.ic_forum_24px) { /*...*/ }
+                is CourseModule.Quiz -> QuizView(module) { /*...*/ }
+                else -> SimpleModuleView(module, Res.drawable.ic_extension_24px) { /*...*/ }
+            }
+        }
     }
-
-    is CourseModule.Label -> LabelView(module)
-
-    is CourseModule.Resource -> ResourceView(module) { /* duty.openResource(it) */ }
-
-    is CourseModule.Assignment -> AssignmentView(module) { /* duty.openAssign(it) */ }
-
-    is CourseModule.Forum -> SimpleModuleView(module, Res.drawable.ic_forum_24px) { /* duty.openForum(it) */ }
-
-    is CourseModule.Quiz -> QuizView(module) {/* duty.openQuiz(it) */ }
-
-    else -> SimpleModuleView(module, Res.drawable.ic_extension_24px) {}
 }
 
+// 提取判断逻辑
+private fun isFullWidth(module: CourseModule): Boolean =
+    module !is CourseModule.Label && module !is CourseModule.SubSection
+
 @Composable
-fun SectionHeader(section: SectionLike, needBottomPadding: Boolean) = Column(Modifier.fillMaxWidth(), Arrangement.spacedBy(16.dp)) {
-    val modifier = Modifier.padding(horizontal = 16.dp).only(needBottomPadding) { padding(bottom = 16.dp) }
+fun SectionHeader(section: SectionLike) = Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp), Arrangement.spacedBy(16.dp)) {
 
-    Text(section.name, modifier, MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleLarge)
+    Text(section.name, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.titleLarge)
 
-    section.summary?.let { if (it.isNotBlank()) Text(it, modifier, MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium) }
+    section.summary?.let { if (it.isNotBlank()) Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium) }
 }
 
 @Composable
@@ -137,7 +140,7 @@ fun LabelView(label: CourseModule.Label) {
     // TODO：简单处理 HTML，以后用库
     val plainText = remember(label.contentHtml) { label.contentHtml.replace(Regex("<[^>]*>"), "").replace("&nbsp;", " ").trim() }
 
-    if (plainText.isNotEmpty()) Text(plainText, Modifier.padding(horizontal = 16.dp), MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
+    if (plainText.isNotEmpty()) Text(plainText, color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.bodyMedium)
 }
 
 @Composable

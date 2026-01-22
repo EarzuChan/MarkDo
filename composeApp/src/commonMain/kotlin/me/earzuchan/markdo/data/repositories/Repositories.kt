@@ -32,4 +32,12 @@ class AppPreferenceRepository {
 
     val password: Flow<String> = getPreference(AppPreferences.KEY_PASSWORD, "")
     suspend fun setPassword(password: String) = setPreference(AppPreferences.KEY_PASSWORD, password)
+
+    suspend fun resetLoginData(){
+        dataStore.edit { prefs ->
+            prefs[AppPreferences.KEY_BASE_SITE] = AppPreferences.DEFAULT_BASE_SITE
+            prefs[AppPreferences.KEY_USERNAME] = ""
+            prefs[AppPreferences.KEY_PASSWORD] = ""
+        }
+    }
 }

@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.FaultyDecomposeApi
 import com.arkivanov.decompose.extensions.compose.stack.Children
-import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import me.earzuchan.markdo.duties.CourseDuty
 import me.earzuchan.markdo.duties.GradesDuty
@@ -61,7 +60,7 @@ fun LoginScreen(duty: LoginDuty) = Scaffold(topBar = { TopAppBar({ Text("登录"
     val username by duty.username.collectAsState()
     val password by duty.password.collectAsState()
     val error by duty.errorMessage.collectAsState()
-    val loading by duty.isLoading.collectAsState()
+    val loading by duty.disableButton.collectAsState()
 
     LazyColumn(Modifier.fillMaxSize().padding(padding), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         item { OutlinedTextField(baseSite, { duty.baseSite.value = it }, Modifier.fillMaxWidth(), label = { Text("站点域名") }) }
